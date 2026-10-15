@@ -1,0 +1,6 @@
+logs/
+outputs/
+templates/oasis30ct/*.nii.gz
+*~
+*.swp
+.DS_Store

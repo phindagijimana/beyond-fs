@@ -1,0 +1,293 @@
+#!/usr/bin/env bash
+# beyondfs — specialty segmentations beyond FreeSurfer / FastSurfer.
+# Thin dispatcher. Cite MODULES.md papers, not this wrapper.
+set -euo pipefail
+
+VERSION="0.4.0"
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=modules/paths.sh
+source "${HERE}/modules/paths.sh"
+
+MODE="submit"
+PIRIFORM=""
+CLAUSTRUM=0
+RUN_FIRST=0
+RUN_ASHS=0
+RUN_HIPPUNFOLD=0
+RUN_SYNTHSEG=0
+RUN_CAT12=0
+RUN_SUIT=0
+RUN_ANTSCT=0
+RUN_MAGET=0
+RUN_CERES=0
+RUN_PINCRAM=0
+RUN_THOMAS=0
+ALL_SUBJECTS=0
+DO_DOCTOR=0
+DO_LIST=0
+DO_HELP=0
+PARTICIPANTS=()
+PARTICIPANTS_FILE=""
+
+usage() {
+  cat <<EOF
+beyondfs ${VERSION}  —  published segs FreeSurfer / FastSurfer do not already give you
+
+  beyondfs list | doctor
+  beyondfs run --participant_label SUB [flags] [--submit|--local]
+
+Identity: cite the method paper, not this wrapper. See MODULES.md.
+
+  --piriform maper      MAPER (Heckemann 2010; Steinbart 2023 PC)  [default]
+  --piriform jlf        ANTs JLF (Wang 2013)
+  --piriform ants-jlf   ANTs strip + JLF
+  --claustrum           Mauri 2025
+  --first               FSL FIRST (Patenaude 2011)
+  --synthseg            SynthSeg (Billot 2023)
+  --ants-ct             ANTs cortical thickness (Tustison 2014)
+  --ashs                ASHS (Yushkevich 2010/2015)     [not installed]
+  --hippunfold          HippUnfold (DeKraker 2022)      [not installed]
+  --cat12               CAT12 (Gaser 2024)              [not installed]
+  --suit                SUIT (Diedrichsen 2006/2009)    [not installed]
+  --maget               MAGeT (Pipitone 2014)           [not installed]
+  --ceres               CERES (Romero 2017)             [not installed]
+  --pincram             Pincram (Heckemann 2015)        [not installed]
+  --thomas              THOMAS (Su 2019); not IDEAS FS  [not installed]
+EOF
+}
+
+list_modules() {
+  cat "${HERE}/MODULES.md"
+}
+
+ok()   { printf '  OK   %s\n' "$*"; }
+warn() { printf '  WARN %s\n' "$*" >&2; }
+bad()  { printf '  FAIL %s\n' "$*" >&2; }
+
+doctor() {
+  local fail=0
+  echo "beyondfs doctor  (${VERSION})"
+  echo "root=${ROOT}"
+  echo "bids=${BIDS_DIR}"
+  echo
+
+  echo "MAPER / JLF (Heckemann 2010; Wang 2013; Steinbart 2023)"
+  if [[ -x "${PIRIFORM_SCRIPTS}/MAPER.sh" && -x "${PIRIFORM_SCRIPTS}/MALF.sh" ]]; then
+    ok "MAPER.sh MALF.sh"
+  else
+    bad "piriform scripts"; fail=1
+  fi
+  local atlas_ok=1 i id
+  for i in $(seq 1 30); do
+    id="$(printf "a%02d" "${i}")"
+    if [[ ! -f "${PIRIFORM_DIR}/atlas/${id}_BrainExtractionBrain.nii.gz" || \
+          ! -f "${PIRIFORM_DIR}/atlas/${id}_PC_labels.nii.gz" ]]; then
+      atlas_ok=0
+      break
+    fi
+  done
+  if [[ "${atlas_ok}" -eq 1 ]]; then ok "30 Hammers PC atlas pairs"; else bad "atlas missing"; fail=1; fi
+  [[ -x "${ROOT}/tools/maper/maper" ]] && ok "MAPER launcher" || { bad "tools/maper/maper"; fail=1; }
+  [[ -x "${ROOT}/tools/containers/mirtk-appdir/AppRun" ]] && ok "MIRTK" || { bad "MIRTK AppRun"; fail=1; }
+  [[ -x "${ROOT}/tools/niftyseg/bin/seg_maths" ]] && ok "NiftySeg" || { bad "NiftySeg"; fail=1; }
+  [[ -f "${FMRIPREP_SIF}" ]] && ok "fMRIPrep SIF (ANTs/JLF)" || warn "no ${FMRIPREP_SIF}"
+
+  echo
+  echo "Claustrum (Mauri 2025)"
+  if [[ -n "${CLAU_DIR}" && -x "${CLAU_DIR}/slurm/submit_ideas_claustrum.sh" ]]; then
+    ok "submit_ideas_claustrum.sh"
+  else
+    bad "claustrum submit"; fail=1
+  fi
+  [[ -n "${CLAU_DIR}" && -x "${CLAU_DIR}/tools/bin/lta_wrap" ]] && ok "lta_wrap" || { bad "lta_wrap"; fail=1; }
+  [[ -f "${FS_SIF}" ]] && ok "FreeSurfer SIF" || warn "no FS SIF"
+  [[ -s "${FS_LICENSE}" ]] && ok "FS license" || warn "no FS license"
+
+  echo
+  echo "FIRST / SynthSeg / later engines"
+  [[ -f "${FSL_SIF}" ]] && ok "FSL SIF (Patenaude FIRST)" || warn "no FSL SIF"
+  [[ -f "${FS_SIF}" ]] && ok "mri_synthseg (Billot SynthSeg)" || warn "SynthSeg needs FS SIF"
+  [[ -n "${ASHS_ROOT:-}" && -x "${ASHS_ROOT}/bin/ashs_main.sh" ]] && ok "ASHS_ROOT" || warn "ASHS not installed"
+  [[ -n "${HIPPUNFOLD_SIF:-}" && -f "${HIPPUNFOLD_SIF}" ]] && ok "HIPPUNFOLD_SIF" || warn "HippUnfold SIF not set"
+  [[ -n "${SPM_DIR:-}" && -d "${SPM_DIR}" ]] && ok "SPM_DIR (CAT12)" || warn "CAT12 needs SPM12"
+  [[ -n "${SUIT_DIR:-}" && -d "${SUIT_DIR}" ]] && ok "SUIT_DIR" || warn "SUIT not installed"
+  [[ -f "${FMRIPREP_SIF}" && -s "${HERE}/templates/oasis30ct/prior1.nii.gz" ]] && ok "ANTs CT priors (Tustison)" || warn "ANTs CT priors missing"
+  [[ -n "${MAGET_ROOT:-}" ]] && ok "MAGET_ROOT" || warn "MAGeT not installed"
+  [[ -n "${CERES_SIF:-}" && -f "${CERES_SIF}" ]] && ok "CERES_SIF" || warn "CERES not installed"
+  [[ -n "${PINCRAM:-}" && -x "${PINCRAM}" ]] && ok "PINCRAM" || warn "Pincram not installed"
+  [[ -n "${THOMAS_SIF:-}" && -f "${THOMAS_SIF}" ]] && ok "THOMAS_SIF" || warn "THOMAS not installed (do not use on official IDEAS FS)"
+  [[ -d "${BIDS_DIR}" ]] && ok "BIDS dir" || warn "BIDS missing"
+
+  echo
+  if [[ "${fail}" -ne 0 ]]; then
+    echo "doctor: FAIL"
+    return 1
+  fi
+  echo "doctor: OK"
+}
+
+discover_subjects() {
+  local s
+  [[ -d "${BIDS_DIR}" ]] || { echo "ERROR: BIDS dir not found: ${BIDS_DIR}" >&2; return 1; }
+  for s in "${BIDS_DIR}"/sub-*/anat/*_T1w.nii.gz; do
+    [[ -f "${s}" ]] || continue
+    basename "$(dirname "$(dirname "${s}")")"
+  done
+}
+
+need_brain() {
+  local sub="$1"
+  [[ -f "${PIRIFORM_DIR}/subjects/${sub}/${sub}_BrainExtractionBrain.nii.gz" ]]
+}
+
+need_t1() {
+  local sub="$1"
+  [[ -f "${BIDS_DIR}/${sub}/anat/${sub}_T1w.nii.gz" ]]
+}
+
+run_cmd() { echo "+ $*"; "$@"; }
+
+dispatch_piriform() {
+  local sub="$1"
+  case "${PIRIFORM}" in
+    maper)
+      need_brain "${sub}" || { echo "ERROR: no stripped brain for ${sub}" >&2; return 1; }
+      if [[ "${MODE}" == "local" ]]; then run_cmd "${PIRIFORM_SCRIPTS}/MAPER.sh" "${sub}"
+      else run_cmd "${PIRIFORM_SCRIPTS}/submit_MAPER.sh" "${sub}"; fi
+      ;;
+    jlf)
+      need_brain "${sub}" || { echo "ERROR: no stripped brain for ${sub}" >&2; return 1; }
+      if [[ "${MODE}" == "local" ]]; then run_cmd "${PIRIFORM_SCRIPTS}/MALF.sh" "${sub}"
+      else run_cmd "${PIRIFORM_SCRIPTS}/submit_MALF.sh" "${sub}"; fi
+      ;;
+    ants-jlf)
+      need_t1 "${sub}" || { echo "ERROR: no IDEAS T1 for ${sub}" >&2; return 1; }
+      run_cmd "${PIRIFORM_SCRIPTS}/submit_ants_malf_ideas.sh" "${sub}"
+      ;;
+    *)
+      echo "ERROR: unknown --piriform ${PIRIFORM}" >&2
+      return 1
+      ;;
+  esac
+}
+
+dispatch_claustrum() {
+  local sub="$1"
+  [[ -n "${CLAU_DIR}" ]] || { echo "ERROR: clau_seg missing" >&2; return 1; }
+  need_t1 "${sub}" || { echo "ERROR: no IDEAS T1 for ${sub}" >&2; return 1; }
+  run_cmd "${CLAU_DIR}/slurm/submit_ideas_claustrum.sh" "${sub}"
+}
+
+run_subject() {
+  local sub="$1"
+  echo "======== ${sub} piriform=${PIRIFORM:-off} claustrum=${CLAUSTRUM} first=${RUN_FIRST} synthseg=${RUN_SYNTHSEG} mode=${MODE} ========"
+  [[ -n "${PIRIFORM}" ]] && dispatch_piriform "${sub}"
+  [[ "${CLAUSTRUM}" -eq 1 ]] && dispatch_claustrum "${sub}"
+  [[ "${RUN_FIRST}" -eq 1 ]] && run_cmd "${HERE}/modules/submit_first.sh" "${sub}"
+  [[ "${RUN_SYNTHSEG}" -eq 1 ]] && run_cmd "${HERE}/modules/submit_synthseg.sh" "${sub}"
+  [[ "${RUN_ANTSCT}" -eq 1 ]] && run_cmd "${HERE}/modules/submit_ants_ct.sh" "${sub}"
+  [[ "${RUN_ASHS}" -eq 1 ]] && "${HERE}/modules/stub_not_installed.sh" ashs "${sub}"
+  [[ "${RUN_HIPPUNFOLD}" -eq 1 ]] && "${HERE}/modules/stub_not_installed.sh" hippunfold "${sub}"
+  [[ "${RUN_CAT12}" -eq 1 ]] && "${HERE}/modules/stub_not_installed.sh" cat12 "${sub}"
+  [[ "${RUN_SUIT}" -eq 1 ]] && "${HERE}/modules/stub_not_installed.sh" suit "${sub}"
+  [[ "${RUN_MAGET}" -eq 1 ]] && "${HERE}/modules/stub_not_installed.sh" maget "${sub}"
+  [[ "${RUN_CERES}" -eq 1 ]] && "${HERE}/modules/stub_not_installed.sh" ceres "${sub}"
+  [[ "${RUN_PINCRAM}" -eq 1 ]] && "${HERE}/modules/stub_not_installed.sh" pincram "${sub}"
+  [[ "${RUN_THOMAS}" -eq 1 ]] && "${HERE}/modules/stub_not_installed.sh" thomas "${sub}"
+}
+
+has_module() {
+  [[ -n "${PIRIFORM}" || "${CLAUSTRUM}" -eq 1 || "${RUN_FIRST}" -eq 1 || \
+     "${RUN_ASHS}" -eq 1 || "${RUN_HIPPUNFOLD}" -eq 1 || "${RUN_SYNTHSEG}" -eq 1 || \
+     "${RUN_CAT12}" -eq 1 || "${RUN_SUIT}" -eq 1 || "${RUN_ANTSCT}" -eq 1 || \
+     "${RUN_MAGET}" -eq 1 || "${RUN_CERES}" -eq 1 || "${RUN_PINCRAM}" -eq 1 || \
+     "${RUN_THOMAS}" -eq 1 ]]
+}
+
+parse_args() {
+  if [[ $# -eq 0 ]]; then DO_HELP=1; return 0; fi
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      -h|--help) DO_HELP=1; shift ;;
+      --version) echo "beyondfs ${VERSION}"; exit 0 ;;
+      --list|list) DO_LIST=1; shift ;;
+      --doctor|doctor) DO_DOCTOR=1; shift ;;
+      --submit) MODE="submit"; shift ;;
+      --local) MODE="local"; shift ;;
+      --piriform)
+        [[ $# -ge 2 ]] || { echo "ERROR: --piriform needs maper|jlf|ants-jlf" >&2; exit 2; }
+        PIRIFORM="$2"; shift 2 ;;
+      --claustrum) CLAUSTRUM=1; shift ;;
+      --first) RUN_FIRST=1; shift ;;
+      --ashs) RUN_ASHS=1; shift ;;
+      --hippunfold) RUN_HIPPUNFOLD=1; shift ;;
+      --synthseg) RUN_SYNTHSEG=1; shift ;;
+      --cat12) RUN_CAT12=1; shift ;;
+      --suit) RUN_SUIT=1; shift ;;
+      --ants-ct|--ants_ct) RUN_ANTSCT=1; shift ;;
+      --maget) RUN_MAGET=1; shift ;;
+      --ceres) RUN_CERES=1; shift ;;
+      --pincram) RUN_PINCRAM=1; shift ;;
+      --thomas) RUN_THOMAS=1; shift ;;
+      --sclimbic|--thalamic|--train-nnunet)
+        echo "ERROR: $1 is not a beyondfs module. See MODULES.md." >&2
+        exit 2 ;;
+      --participant_label|--participant-label|-s|--subject)
+        [[ $# -ge 2 ]] || { echo "ERROR: $1 needs a subject id" >&2; exit 2; }
+        PARTICIPANTS+=("$2"); shift 2 ;;
+      --participants_file|--participants-file)
+        [[ $# -ge 2 ]] || { echo "ERROR: $1 needs a file" >&2; exit 2; }
+        PARTICIPANTS_FILE="$2"; shift 2 ;;
+      --all-subjects) ALL_SUBJECTS=1; shift ;;
+      --bids-dir) BIDS_DIR="$2"; shift 2 ;;
+      participant|batch|run) shift ;;
+      -*) echo "ERROR: unknown flag $1" >&2; usage >&2; exit 2 ;;
+      *) PARTICIPANTS+=("$1"); shift ;;
+    esac
+  done
+}
+
+main() {
+  parse_args "$@"
+  [[ "${DO_HELP}" -eq 1 ]] && { usage; exit 0; }
+  [[ "${DO_LIST}" -eq 1 ]] && { list_modules; exit 0; }
+  [[ "${DO_DOCTOR}" -eq 1 ]] && { doctor; exit $?; }
+
+  case "${PIRIFORM}" in
+    ""|maper|jlf|ants-jlf) ;;
+    malf) PIRIFORM="jlf" ;;
+    ants-malf|ants_malf) PIRIFORM="ants-jlf" ;;
+    nnunet)
+      echo "ERROR: nnU-Net is not in beyondfs yet (no published PC model)." >&2
+      exit 2 ;;
+    *) echo "ERROR: --piriform must be maper, jlf, or ants-jlf" >&2; exit 2 ;;
+  esac
+
+  if [[ -n "${PARTICIPANTS_FILE}" ]]; then
+    [[ -f "${PARTICIPANTS_FILE}" ]] || { echo "ERROR: no such file ${PARTICIPANTS_FILE}" >&2; exit 1; }
+    while read -r line; do
+      [[ -z "${line}" || "${line}" == \#* ]] && continue
+      PARTICIPANTS+=("${line}")
+    done < "${PARTICIPANTS_FILE}"
+  fi
+  if [[ "${ALL_SUBJECTS}" -eq 1 ]]; then
+    mapfile -t discovered < <(discover_subjects)
+    PARTICIPANTS+=("${discovered[@]}")
+  fi
+
+  if [[ ${#PARTICIPANTS[@]} -eq 0 ]]; then
+    echo "ERROR: no subjects. Use --participant_label SUB --piriform maper --claustrum" >&2
+    exit 2
+  fi
+  if ! has_module; then
+    echo "ERROR: choose a module. Example: --piriform maper --claustrum" >&2
+    exit 2
+  fi
+
+  local sub
+  for sub in "${PARTICIPANTS[@]}"; do
+    run_subject "${sub}"
+  done
+}
+
+main "$@"
