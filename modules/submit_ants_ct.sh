@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# Not a beyondfs CLI module (thickness, not structure segmentation).
 # ANTs cortical thickness (Tustison 2014). Not FreeSurfer/FastSurfer Desikan thickness.
 # Usage: submit_ants_ct.sh sub-152
 set -euo pipefail
@@ -27,6 +28,8 @@ for f in "${OASIS_T1}" "${OASIS_EXT}" "${OASIS_REG}" "${PRIOR_DIR}/prior1.nii.gz
 done
 
 mkdir -p "${OUTDIR}" "${BEYONDFS_DIR}/logs"
+HOME_ALIAS=/mnt/nfs/home/urmc-sh.rochester.edu/pndagiji
+HOME_CANON="$(realpath "${HOME_ALIAS}")"
 
 sbatch <<EOF
 #!/bin/bash
@@ -43,6 +46,8 @@ export ITK_GLOBAL_DEFAULT_NUMBER_OF_THREADS=${CORES}
 ANTS_BIN=/app/.pixi/envs/fmriprep/bin
 echo "start=\$(date -Iseconds) antsCorticalThickness ${SUB}"
 apptainer exec \\
+  --bind "${HOME_CANON}:${HOME_CANON}" \\
+  --bind "${HOME_ALIAS}:${HOME_CANON}" \\
   --bind "${BIDS_DIR}" \\
   --bind "${OUT_ROOT}" \\
   --bind "${OASIS}" \\

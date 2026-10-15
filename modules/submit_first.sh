@@ -21,6 +21,7 @@ if [[ ! -f "${FSL_SIF}" ]]; then
 fi
 
 mkdir -p "${OUTDIR}" "${BEYONDFS_DIR}/logs"
+T1_LOCAL="${OUTDIR}/${SUB}_T1w.nii.gz"
 
 sbatch <<EOF
 #!/bin/bash
@@ -34,8 +35,9 @@ sbatch <<EOF
 
 set -euo pipefail
 echo "start=\$(date -Iseconds) ${SUB}"
-apptainer exec --bind "${BIDS_DIR}" --bind "${OUT_ROOT}" "${FSL_SIF}" \\
-  bash -lc 'source /usr/local/fsl/etc/fslconf/fsl.sh; run_first_all -i "${T1}" -o "${PREFIX}"'
+cp -f "${T1}" "${T1_LOCAL}"
+apptainer exec --bind "${OUT_ROOT}" "${FSL_SIF}" \\
+  bash -lc 'source /usr/local/fsl/etc/fslconf/fsl.sh; run_first_all -i "${T1_LOCAL}" -o "${PREFIX}"'
 echo "end=\$(date -Iseconds)"
 ls -la "${OUTDIR}"
 EOF

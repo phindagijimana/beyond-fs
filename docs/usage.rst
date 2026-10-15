@@ -35,7 +35,6 @@ Combine any flags that apply. Each flag is an independent engine.
      --claustrum \
      --first \
      --synthseg \
-     --ants-ct \
      --submit
 
 ``--submit`` is the default on this cluster (``sbatch``). ``--local``
@@ -46,8 +45,8 @@ Resources
 ---------
 
 Submit scripts request the ``interactive`` partition (12 h) unless a
-module overrides. FIRST and SynthSeg use 8 CPUs; ANTs CT uses 8 CPUs /
-32 GB; claustrum uses the Mauri submit script (8 CPU, 24 GB, 2 h).
+module overrides. FIRST and SynthSeg use 8 CPUs; claustrum uses the
+Mauri submit script (8 CPU, 24 GB, 2 h).
 
 Preview
 -------
@@ -57,3 +56,5 @@ Preview
    ./beyondfs list     # module catalog + papers
    ./beyondfs doctor   # environment
    ./beyondfs --help
+   ./beyondfs run --participant_label sub-152 --first --dry-run
+   ./tests/test_cli.sh

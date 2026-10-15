@@ -8,7 +8,7 @@ sys.path.insert(0, os.path.abspath(".."))
 project = "beyond-fs"
 author = "beyond-fs developers"
 copyright = f"{datetime.now().year}, {author}"
-version = "0.4.0"
+version = "0.5.2"
 release = version
 
 extensions = [

@@ -18,15 +18,15 @@ writes to its own folder.
    * - ``--piriform jlf``
      - ``Piriform_Segmentation/malf/<sub>/``
    * - ``--piriform ants-jlf``
-     - ANTs brain under ``subjects/<sub>-ants/``; labels ``malf/<sub>-ants/``
+     - ANTs brain under ``subjects/<sub>-ants/``; labels ``malf/<sub>-ants/<sub>-ants_Labels.nii.gz``
    * - ``--claustrum``
      - ``clau_seg/outputs/IDEAS/<sub>/``
    * - ``--first``
      - ``beyondfs/outputs/<sub>/first/``
    * - ``--synthseg``
      - ``beyondfs/outputs/<sub>/synthseg/``
-   * - ``--ants-ct``
-     - ``beyondfs/outputs/<sub>/ants-ct/``
+   * - stubs (GIF … pBrain)
+     - no output until the engine is installed; CLI exits 2
 
 Logs
 ----
@@ -35,10 +35,11 @@ Slurm stdout/stderr:
 
 * Piriform: ``Piriform_Segmentation/malf/logs/``
 * Claustrum: ``clau_seg/logs/``
-* FIRST / SynthSeg / ANTs CT: ``beyondfs/logs/``
+* FIRST / SynthSeg: ``beyondfs/logs/``
 
 Citation boilerplate
 --------------------
 
-Copy the papers for the flags you actually ran (see :doc:`citing`). Do not
-cite beyond-fs as the segmentation method.
+Copy the papers for the flags you actually ran (see :doc:`citing`).
+What each engine does, step by step: :doc:`workflows`. Do not cite
+beyond-fs as the segmentation method.

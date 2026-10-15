@@ -33,6 +33,11 @@ Input
 
    Slurm vs local worker (MAPER/JLF only).
 
+.. option:: --dry-run
+
+   Print the submit commands and exit. Still checks that the T1 or
+   stripped brain exists. Use this in ``tests/test_cli.sh``.
+
 Module flags
 ------------
 
@@ -53,17 +58,17 @@ Module flags
 
    SynthSeg via ``mri_synthseg`` (Billot 2023).
 
-.. option:: --ants-ct
-
-   ANTs cortical thickness (Tustison 2014).
-
-.. option:: --ashs, --hippunfold, --cat12, --suit, --maget, --ceres, --pincram, --thomas
+.. option:: --ashs, --hippunfold, --suit, --maget, --ceres, --thomas
 
    Documented; exit with install instructions until the matching
    environment variable is set (see :doc:`installation`).
 
    ``--thomas`` must not be used on official IDEAS FreeSurfer (download
    ``ThalamicNuclei`` instead).
+
+.. option:: --gif, --malp-em, --slant, --assemblynet, --hips, --hippodeep, --acapulco, --pbrain
+
+   Structure segmentation (not installed). See :doc:`workflows`.
 
 Help
 ----
@@ -87,5 +92,7 @@ Help
 Not flags
 ---------
 
-``--sclimbic``, ``--thalamic``, and ``--train-nnunet`` are rejected.
-Those are not beyond-fs modules.
+``--sclimbic``, ``--thalamic``, ``--train-nnunet``, ``--lst``,
+``--bianca``, ``--sct``, ``--ants-ct``, ``--cat12``, and ``--pincram``
+are rejected. Thickness, morphometry, ICV, lesion, and spinal tools are
+not structure segmentation.

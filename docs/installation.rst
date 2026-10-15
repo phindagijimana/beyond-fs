@@ -40,30 +40,48 @@ module system). Override paths with environment variables if yours differ.
    * - ``--synthseg``
      - ``mri_synthseg`` in the FreeSurfer SIF
      - ``FS_SIF``, ``FS_LICENSE``
-   * - ``--ants-ct``
-     - ``antsCorticalThickness.sh`` in the fMRIPrep SIF; OASIS priors
-     - ``FMRIPREP_SIF``
    * - ``--ashs``
      - ASHS install + atlas
      - ``ASHS_ROOT``
    * - ``--hippunfold``
      - HippUnfold container
      - ``HIPPUNFOLD_SIF``
-   * - ``--cat12`` / ``--suit``
-     - MATLAB + SPM12 + toolbox
-     - ``SPM_DIR``, ``SUIT_DIR``, ``MATLAB_SIF``
+   * - ``--suit``
+     - MATLAB + SPM12 + SUIT
+     - ``SUIT_DIR``, ``MATLAB_SIF``
    * - ``--maget``
      - MAGeT Brain
      - ``MAGET_ROOT``
    * - ``--ceres``
      - CERES / volBrain container
      - ``CERES_SIF``
-   * - ``--pincram``
-     - Pincram executable
-     - ``PINCRAM``
    * - ``--thomas``
      - HIPS-THOMAS container (not official IDEAS FS)
      - ``THOMAS_SIF``
+   * - ``--gif``
+     - NiftySeg GIF
+     - ``GIF_ROOT``
+   * - ``--malp-em``
+     - MALPEM package
+     - ``MALPEM_ROOT``
+   * - ``--slant``
+     - SLANT container
+     - ``SLANT_SIF``
+   * - ``--assemblynet``
+     - AssemblyNet container
+     - ``ASSEMBLYNET_SIF``
+   * - ``--hips``
+     - volBrain HIPS
+     - ``HIPS_SIF``
+   * - ``--hippodeep``
+     - Hippodeep executable
+     - ``HIPPODEEP``
+   * - ``--acapulco``
+     - ACAPULCO Singularity image
+     - ``ACAPULCO_SIF``
+   * - ``--pbrain``
+     - pBrain / volBrain PD
+     - ``PBRAIN_SIF``
 
 BIDS input is set with ``--bids-dir`` or ``BEYONDFS_BIDS``.
 

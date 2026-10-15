@@ -21,6 +21,8 @@ make -C docs html
 beyondfs/beyondfs run --participant_label sub-152 --piriform maper --claustrum --submit
 beyondfs/beyondfs list
 beyondfs/beyondfs doctor
+beyondfs/beyondfs run --participant_label sub-152 --first --dry-run
+beyondfs/tests/test_cli.sh
 ```
 
 | Flag | Paper method | Cluster |
@@ -30,12 +32,17 @@ beyondfs/beyondfs doctor
 | `--claustrum` | Mauri 2025 | wired |
 | `--first` | Patenaude 2011 FIRST | wired |
 | `--synthseg` | Billot 2023 SynthSeg | wired |
-| `--ants-ct` | Tustison 2014 ANTs thickness | wired |
 | `--ashs` | Yushkevich 2010/2015 ASHS | not installed |
 | `--hippunfold` | DeKraker 2022 HippUnfold | not installed |
-| `--cat12` | Gaser 2024 CAT12 | not installed |
 | `--suit` | Diedrichsen 2006/2009 SUIT | not installed |
 | `--maget` | Pipitone 2014 MAGeT | not installed |
 | `--ceres` | Romero 2017 CERES | not installed |
-| `--pincram` | Heckemann 2015 Pincram | not installed |
 | `--thomas` | Su 2019 THOMAS (non-IDEAS FS only) | not installed |
+| `--gif` | Cardoso 2015 GIF | not installed |
+| `--malp-em` | Ledig 2015 MALP-EM | not installed |
+| `--slant` | Huo 2019 SLANT | not installed |
+| `--assemblynet` | Coupé 2020 AssemblyNet | not installed |
+| `--hips` | Romero 2017 HIPS | not installed |
+| `--hippodeep` | Thyreau 2018 Hippodeep | not installed |
+| `--acapulco` | Han 2020 ACAPULCO | not installed |
+| `--pbrain` | Manjón 2020 pBrain | not installed |

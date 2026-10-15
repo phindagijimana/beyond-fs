@@ -20,12 +20,13 @@ that paper in a methods section, not because it is “another MRI tool.”
 The main features of this software are:
 
 1. A single command (``beyondfs run``) with flags for piriform, claustrum,
-   FIRST, SynthSeg, ANTs cortical thickness, and related published tools.
+   FIRST, SynthSeg, and related published **structure** segmentations.
 2. Engines stay separate (MAPER, Mauri ``mri_claustrum_seg``, FSL FIRST,
-   ``mri_synthseg``, ``antsCorticalThickness.sh``). The wrapper only
-   chooses which script to submit.
+   ``mri_synthseg``). The wrapper only chooses which script to submit.
 3. A ``doctor`` command that checks containers, atlases, licenses, and
    which optional packages are installed.
+4. For every flag, a citation and a short step-by-step of the engine
+   (:doc:`workflows`).
 
 Project defaults
 ^^^^^^^^^^^^^^^^
@@ -52,6 +53,8 @@ tool. Downstream papers should cite Steinbart/MAPER, Mauri, FIRST, etc.
    workflows
    outputs
    citing
+   testing
+   developers
    troubleshooting
    changes
    license

@@ -23,6 +23,10 @@ Logs and crash files
   dead academic address. Type SMTP addresses; do not paste ``mailto:``
   links.
 
+**``beyondfs run`` printed the ``sbatch`` line then exited 1**
+  Fixed in 0.4.1: a failing ``[[ flag ]] &&`` as the last line of
+  ``run_subject`` made ``set -e`` abort. Re-run ``./tests/test_cli.sh``.
+
 FAQ
 ---
 
